@@ -62,12 +62,20 @@ async function combineData(workplaceDataPromise, hubstaffDataPromise) {
     const matchingHubstaff = hubstaffData.find((hubstaffRow) => {
       const hubstaffNames = hubstaffRow.Member.split(" ");
 
-      return workplaceNames.every((workplaceName) =>
-        hubstaffNames.some(
-          (hubstaffName) =>
-            hubstaffName.toLowerCase() === workplaceName.toLowerCase()
+      const agentRegex = new RegExp("^" + workplaceRow.Agent.slice(0, 4), "i");
+
+      const matches = workplaceNames.filter((workplaceName) =>
+        hubstaffNames.some((hubstaffName) =>
+          hubstaffName.toLowerCase().includes(workplaceName.toLowerCase())
         )
-      );
+      ).length;
+
+      const matchThreshold = Math.ceil(workplaceNames.length * 0.75);
+
+      const results =
+        agentRegex.test(hubstaffRow.Member) + (matches >= matchThreshold);
+
+      return results;
     });
 
     if (matchingHubstaff) {
@@ -84,6 +92,7 @@ async function combineData(workplaceDataPromise, hubstaffDataPromise) {
 
   return combined;
 }
+
 
 
 
