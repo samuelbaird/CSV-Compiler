@@ -3,30 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <title>CSV File Upload</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="dist/style.css">
 </head>
-<body>
-    <h1>Squad Lead Multitool</h1>
+<body class="font-sans bg-light text-dark min-h-screen flex flex-col items-center py-8">
+    <h1 class="text-4xl font-bold mb-8">Squad Lead Multitool</h1>
     
-    <form id="uploadForm">
-        <h2>AHT Compiler</h2>
-        <label for="hubstaffFile">Hubstaff CSV:</label>
-        <input type="file" id="hubstaffFile" name="hubstaffFile" accept=".csv">
-        
-        <label for="workplaceFile">Workplace CSV:</label>
-        <input type="file" id="workplaceFile" name="workplaceFile" accept=".csv">
-        
-        <button type="submit">Compile</button>
-    </form>
+    <div class="w-full max-w-md">
+        <form id="uploadForm" class="flex flex-col gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-card mb-8">
+            <h2 class="text-2xl font-semibold text-primary">AHT Compiler</h2>
+            <p class="text-gray-600">Compile the Hubstaff and Workplace CSVs into a single CSV for AHT calculation.</p>
+            <label for="hubstaffFile" class="font-semibold">Hubstaff CSV:</label>
+            <input type="file" id="hubstaffFile" name="hubstaffFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
+            
+            <label for="workplaceFile" class="font-semibold">Workplace CSV:</label>
+            <input type="file" id="workplaceFile" name="workplaceFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
+            
+            <button type="submit" class="p-3 bg-primary text-white rounded hover:bg-secondary transition duration-200">Compile</button>
+        </form>
 
-    <form id="gptFilterForm">
-        <h2>GPT Filter</h2>
-        <label for="gptFile">GPT CSV:</label>
-        <input type="file" id="urlsFile" name="urlsFile" accept=".csv">
-        
-        <button type="submit">Filter</button>
+        <form id="gptFilterForm" class="flex flex-col gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-card">
+            <h2 class="text-2xl font-semibold text-primary">GPT Filter</h2>
+            <p class="text-gray-600">Filter the Hubstaff Apps and Urls report for use of prohibited LLMs.</p>
+            <label for="gptFile" class="font-semibold">GPT CSV:</label>
+            <input type="file" id="urlsFile" name="urlsFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
+            
+            <button type="submit" class="p-3 bg-primary text-white rounded hover:bg-secondary transition duration-200">Filter</button>
+        </form>
+    </div>
 
     <script defer src="script.js"></script>
-
 </body>
 </html>
