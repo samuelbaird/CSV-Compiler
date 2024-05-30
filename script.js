@@ -131,10 +131,13 @@ function downloadCSV(csvContent, filename) {
 async function gptFilter(urlsFilePromise) {
   const urlsData = await urlsFilePromise;
 
-  // List of URLs to filter for
-  const filterUrls = ["chatgpt.com", "perplexity.ai"];
+  const filterUrls = [
+    "chatgpt.com",
+    "perplexity.ai",
+    "perplexity.chat",
+    "huggingface.co",
+  ];
 
-  // Filter the URLs based on the App or Site column
   const filteredUrls = urlsData.filter((row) =>
     filterUrls.includes(row["App or Site"])
   );
