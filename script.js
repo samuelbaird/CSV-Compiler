@@ -1,5 +1,5 @@
 const uploadForm = document.getElementById("uploadForm");
-const downloadButton = document.getElementById("downloadButton");
+const gptFilterForm = document.getElementById("gptFilterForm");
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -15,9 +15,23 @@ uploadForm.addEventListener("submit", async (event) => {
     hubstaffDataPromise
   );
 
-  const csvContent = convertToCSV(combinedData);
+  const csvContent = convertToCSV(combinedData, "combined_data.csv");
 
   downloadCSV(csvContent);
+});
+
+gptFilterForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const urlsFile = document.getElementById("urlsFile").files[0];
+
+  const urlsFilePromise = await parseCSV(urlsFile);
+
+  const filteredUrls = await gptFilter(urlsFilePromise);
+
+  const csvContent = convertToCSV(filteredUrls);
+
+  downloadCSV(csvContent, "filtered_urls.csv");
 });
 
 function parseCSV(file) {
@@ -93,9 +107,6 @@ async function combineData(workplaceDataPromise, hubstaffDataPromise) {
   return combined;
 }
 
-
-
-
 function convertToCSV(data) {
   if (!data.length) return "";
 
@@ -107,12 +118,26 @@ function convertToCSV(data) {
   return lines.join("\n");
 }
 
-function downloadCSV(csvContent) {
+function downloadCSV(csvContent, filename) {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "combined_results.csv";
+  link.download = filename;
   link.click();
   window.URL.revokeObjectURL(url);
+}
+
+async function gptFilter(urlsFilePromise) {
+  const urlsData = await urlsFilePromise;
+
+  // List of URLs to filter for
+  const filterUrls = ["chatgpt.com", "perplexity.ai"];
+
+  // Filter the URLs based on the App or Site column
+  const filteredUrls = urlsData.filter((row) =>
+    filterUrls.includes(row["App or Site"])
+  );
+
+  return filteredUrls;
 }
