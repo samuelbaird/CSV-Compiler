@@ -1,5 +1,6 @@
 const uploadForm = document.getElementById("uploadForm");
 const gptFilterForm = document.getElementById("gptFilterForm");
+const auditForm = document.getElementById("auditForm");
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -32,6 +33,25 @@ gptFilterForm.addEventListener("submit", async (event) => {
   const csvContent = convertToCSV(filteredUrls);
 
   downloadCSV(csvContent, "filtered_urls.csv");
+});
+
+auditForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const workplaceFile = document.getElementById("workplaceAuditFile").files[0];
+  const hubstaffFile = document.getElementById("hubstaffAuditFile").files[0];
+
+  const workplaceDataPromise = parseCSV(workplaceFile);
+  const hubstaffDataPromise = parseCSV(hubstaffFile);
+
+  const combinedData = await combineAuditData(
+    workplaceDataPromise,
+    hubstaffDataPromise
+  );
+
+  const csvContent = convertToCSV(combinedData);
+
+  downloadCSV(csvContent, "combined_data.csv");
 });
 
 function parseCSV(file) {
@@ -69,49 +89,40 @@ async function combineData(workplaceDataPromise, hubstaffDataPromise) {
   const workplaceData = await workplaceDataPromise;
   const hubstaffData = await hubstaffDataPromise;
 
-    const filteredHubstaffData = hubstaffData.filter(
-      (hubstaffRow) =>
-        hubstaffRow.Project !== "Google - Multi-Turn (Meetings & Training)"
-    );
+  const combined = [];
+  workplaceData.forEach((workplaceRow) => {
+    const workplaceNames = workplaceRow.Agent.split(" ");
 
-    const combined = [];
-    workplaceData.forEach((workplaceRow) => {
-      const workplaceNames = workplaceRow.Agent.split(" ");
+    const matchingHubstaff = hubstaffData.find((hubstaffRow) => {
+      const hubstaffNames = hubstaffRow.Member.split(" ");
 
-      const matchingHubstaff = filteredHubstaffData.find((hubstaffRow) => {
-        const hubstaffNames = hubstaffRow.Member.split(" ");
+      const agentRegex = new RegExp("^" + workplaceRow.Agent.slice(0, 4), "i");
 
-        const agentRegex = new RegExp(
-          "^" + workplaceRow.Agent.slice(0, 4),
-          "i"
-        );
+      const matches = workplaceNames.filter((workplaceName) =>
+        hubstaffNames.some((hubstaffName) =>
+          hubstaffName.toLowerCase().includes(workplaceName.toLowerCase())
+        )
+      ).length;
 
-        const matches = workplaceNames.filter((workplaceName) =>
-          hubstaffNames.some((hubstaffName) =>
-            hubstaffName.toLowerCase().includes(workplaceName.toLowerCase())
-          )
-        ).length;
+      const matchThreshold = Math.ceil(workplaceNames.length * 0.75);
 
-        const matchThreshold = Math.ceil(workplaceNames.length * 0.75);
+      const results =
+        agentRegex.test(hubstaffRow.Member) + (matches >= matchThreshold);
 
-        const results =
-          agentRegex.test(hubstaffRow.Member) + (matches >= matchThreshold);
-
-        return results;
-      });
-
-      if (matchingHubstaff) {
-        combined.push({
-          Agent: workplaceRow.Agent,
-          Timer: matchingHubstaff.Project,
-          Task: workplaceRow.Step,
-          Date: matchingHubstaff.Date,
-          Time: matchingHubstaff.Time,
-          Activity: matchingHubstaff.Activity,
-          "Tasks Completed": workplaceRow["# of Base Runs"],
-        });
-      }
+      return results;
     });
+
+    if (matchingHubstaff) {
+      combined.push({
+        Agent: workplaceRow.Agent,
+        Timer: matchingHubstaff.Project,
+        Task: workplaceRow.Step,
+        Date: matchingHubstaff.Date,
+        Time: matchingHubstaff.Time,
+        "Tasks Completed": workplaceRow["# of Base Runs"],
+      });
+    }
+  });
 
   return combined;
 }
@@ -153,3 +164,62 @@ async function gptFilter(urlsFilePromise) {
 
   return filteredUrls;
 }
+
+async function combineAuditData(workplaceDataPromise, hubstaffDataPromise) {
+  const workplaceData = await workplaceDataPromise;
+  const hubstaffData = await hubstaffDataPromise;
+
+  const filteredHubstaffData = hubstaffData.filter(
+    (hubstaffRow) =>
+      hubstaffRow.Project === "Google - Multi-Turn (QA)" ||
+      hubstaffRow.Project === "Google - Multi-Turn (Operating)"
+  );
+
+  const combined = [];
+
+  hubstaffData.forEach((hubstaffRow) => {
+    let task = null;
+    let tasksCompleted = null;
+
+    if (
+      hubstaffRow.Project === "Google - Multi-Turn (QA)" ||
+      hubstaffRow.Project === "Google - Multi-Turn (Operating)"
+    ) {
+      const matchingWorkplace = workplaceData.find((workplaceRow) => {
+        const hubstaffNames = hubstaffRow.Member.split(" ");
+        const workplaceNames = workplaceRow.Agent.split(" ");
+        const agentRegex = new RegExp(
+          "^" + hubstaffRow.Member.slice(0, 4),
+          "i"
+        );
+        const matches = workplaceNames.filter((workplaceName) =>
+          hubstaffNames.some((hubstaffName) =>
+            hubstaffName.toLowerCase().includes(workplaceName.toLowerCase())
+          )
+        ).length;
+
+        const matchThreshold = Math.ceil(workplaceNames.length * 0.75);
+
+        return agentRegex.test(workplaceRow.Agent) && matches >= matchThreshold;
+      });
+
+      if (matchingWorkplace) {
+        task = matchingWorkplace.Step;
+        tasksCompleted = matchingWorkplace["# of Base Runs"];
+      }
+    }
+
+    combined.push({
+      Agent: hubstaffRow.Member,
+      Timer: hubstaffRow.Project,
+      Task: task,
+      Date: hubstaffRow.Date,
+      Time: hubstaffRow.Time,
+      Activity: hubstaffRow.Activity,
+      "Tasks Completed": tasksCompleted,
+    });
+  });
+
+  return combined;
+}
+

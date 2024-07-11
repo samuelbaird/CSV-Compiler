@@ -11,7 +11,7 @@
     
     <div class="w-full max-w-md">
         <form id="uploadForm" class="flex flex-col gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-card mb-8">
-            <h2 class="text-2xl font-semibold text-primary">AHT Compiler</h2>
+            <h2 class="text-2xl font-semibold text-primary">Squad AHT Compiler</h2>
             <p class="text-gray-600">Compile the Hubstaff and Workplace CSVs into a single CSV for AHT calculation.</p>
             <label for="hubstaffFile" class="font-semibold">Hubstaff CSV:</label>
             <input type="file" id="hubstaffFile" name="hubstaffFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
@@ -22,13 +22,25 @@
             <button type="submit" class="p-3 bg-primary text-white rounded hover:bg-secondary transition duration-200">Compile</button>
         </form>
 
-        <form id="gptFilterForm" class="flex flex-col gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-card">
+        <form id="gptFilterForm" class="flex flex-col gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-card mb-8">
             <h2 class="text-2xl font-semibold text-primary">GPT Filter</h2>
             <p class="text-gray-600">Filter the Hubstaff Apps and Urls report for use of prohibited LLMs.</p>
             <label for="gptFile" class="font-semibold">GPT CSV:</label>
             <input type="file" id="urlsFile" name="urlsFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
             
             <button type="submit" class="p-3 bg-primary text-white rounded hover:bg-secondary transition duration-200">Filter</button>
+        </form>
+
+        <form id="auditForm" class="flex flex-col gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-card mb-8">
+            <h2 class="text-2xl font-semibold text-primary">Audit Tool</h2>
+            <p class="text-gray-600">Compile the Hubstaff and Workplace CSVs into a single CSV for AHT calculation, activity reporting, etc.</p>
+            <label for="hubstaffFile" class="font-semibold">Hubstaff CSV:</label>
+            <input type="file" id="hubstaffAuditFile" name="hubstaffAuditFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
+            
+            <label for="workplaceFile" class="font-semibold">Workplace CSV:</label>
+            <input type="file" id="workplaceAuditFile" name="workplaceAuditFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
+            
+            <button type="submit" class="p-3 bg-primary text-white rounded hover:bg-secondary transition duration-200">Compile</button>
         </form>
     </div>
 
