@@ -15,9 +15,9 @@ uploadForm.addEventListener("submit", async (event) => {
     hubstaffDataPromise
   );
 
-  const csvContent = convertToCSV(combinedData, "combined_data.csv");
+  const csvContent = convertToCSV(combinedData);
 
-  downloadCSV(csvContent);
+  downloadCSV(csvContent, "combined_data.csv");
 });
 
 gptFilterForm.addEventListener("submit", async (event) => {
@@ -99,6 +99,7 @@ async function combineData(workplaceDataPromise, hubstaffDataPromise) {
         Task: workplaceRow.Step,
         Date: matchingHubstaff.Date,
         Time: matchingHubstaff.Time,
+        Activity: matchingHubstaff.Activity,
         "Tasks Completed": workplaceRow["# of Base Runs"],
       });
     }
