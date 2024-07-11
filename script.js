@@ -69,41 +69,49 @@ async function combineData(workplaceDataPromise, hubstaffDataPromise) {
   const workplaceData = await workplaceDataPromise;
   const hubstaffData = await hubstaffDataPromise;
 
-  const combined = [];
-  workplaceData.forEach((workplaceRow) => {
-    const workplaceNames = workplaceRow.Agent.split(" ");
+    const filteredHubstaffData = hubstaffData.filter(
+      (hubstaffRow) =>
+        hubstaffRow.Project !== "Google - Multi-Turn (Meetings & Training)"
+    );
 
-    const matchingHubstaff = hubstaffData.find((hubstaffRow) => {
-      const hubstaffNames = hubstaffRow.Member.split(" ");
+    const combined = [];
+    workplaceData.forEach((workplaceRow) => {
+      const workplaceNames = workplaceRow.Agent.split(" ");
 
-      const agentRegex = new RegExp("^" + workplaceRow.Agent.slice(0, 4), "i");
+      const matchingHubstaff = filteredHubstaffData.find((hubstaffRow) => {
+        const hubstaffNames = hubstaffRow.Member.split(" ");
 
-      const matches = workplaceNames.filter((workplaceName) =>
-        hubstaffNames.some((hubstaffName) =>
-          hubstaffName.toLowerCase().includes(workplaceName.toLowerCase())
-        )
-      ).length;
+        const agentRegex = new RegExp(
+          "^" + workplaceRow.Agent.slice(0, 4),
+          "i"
+        );
 
-      const matchThreshold = Math.ceil(workplaceNames.length * 0.75);
+        const matches = workplaceNames.filter((workplaceName) =>
+          hubstaffNames.some((hubstaffName) =>
+            hubstaffName.toLowerCase().includes(workplaceName.toLowerCase())
+          )
+        ).length;
 
-      const results =
-        agentRegex.test(hubstaffRow.Member) + (matches >= matchThreshold);
+        const matchThreshold = Math.ceil(workplaceNames.length * 0.75);
 
-      return results;
-    });
+        const results =
+          agentRegex.test(hubstaffRow.Member) + (matches >= matchThreshold);
 
-    if (matchingHubstaff) {
-      combined.push({
-        Agent: workplaceRow.Agent,
-        Timer: matchingHubstaff.Project,
-        Task: workplaceRow.Step,
-        Date: matchingHubstaff.Date,
-        Time: matchingHubstaff.Time,
-        Activity: matchingHubstaff.Activity,
-        "Tasks Completed": workplaceRow["# of Base Runs"],
+        return results;
       });
-    }
-  });
+
+      if (matchingHubstaff) {
+        combined.push({
+          Agent: workplaceRow.Agent,
+          Timer: matchingHubstaff.Project,
+          Task: workplaceRow.Step,
+          Date: matchingHubstaff.Date,
+          Time: matchingHubstaff.Time,
+          Activity: matchingHubstaff.Activity,
+          "Tasks Completed": workplaceRow["# of Base Runs"],
+        });
+      }
+    });
 
   return combined;
 }
