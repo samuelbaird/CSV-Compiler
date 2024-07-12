@@ -177,6 +177,31 @@ async function combineAuditData(workplaceDataPromise, hubstaffDataPromise) {
 
   const combined = [];
 
+  const normalizeName = (name) => {
+    return name
+      .toLowerCase()
+      .replace(/^(mr|mrs|ms|dr|prof)\.?\s+/i, "")
+      .replace(/\s+(jr|sr|ii|iii|iv|v|ph\.d|md)$/i, "");
+  };
+
+  const workplaceNamesList = workplaceData.map((workplaceRow) => ({
+    name: normalizeName(workplaceRow.Agent),
+    data: workplaceRow,
+  }));
+
+  const fuzzyMatch = (pattern) => {
+    const options = {
+      includeScore: true,
+      threshold: 0.5,
+      keys: ["name"],
+    };
+
+    const fuse = new Fuse(workplaceNamesList, options);
+    const result = fuse.search(pattern);
+
+    return result.length > 0 ? result[0].item.data : null;
+  };
+
   hubstaffData.forEach((hubstaffRow) => {
     let task = null;
     let tasksCompleted = null;
@@ -185,23 +210,8 @@ async function combineAuditData(workplaceDataPromise, hubstaffDataPromise) {
       hubstaffRow.Project === "Google - Multi-Turn (QA)" ||
       hubstaffRow.Project === "Google - Multi-Turn (Operating)"
     ) {
-      const matchingWorkplace = workplaceData.find((workplaceRow) => {
-        const hubstaffNames = hubstaffRow.Member.split(" ");
-        const workplaceNames = workplaceRow.Agent.split(" ");
-        const agentRegex = new RegExp(
-          "^" + hubstaffRow.Member.slice(0, 4),
-          "i"
-        );
-        const matches = workplaceNames.filter((workplaceName) =>
-          hubstaffNames.some((hubstaffName) =>
-            hubstaffName.toLowerCase().includes(workplaceName.toLowerCase())
-          )
-        ).length;
-
-        const matchThreshold = Math.ceil(workplaceNames.length * 0.75);
-
-        return agentRegex.test(workplaceRow.Agent) && matches >= matchThreshold;
-      });
+      const normalizedHubstaffName = normalizeName(hubstaffRow.Member);
+      const matchingWorkplace = fuzzyMatch(normalizedHubstaffName);
 
       if (matchingWorkplace) {
         task = matchingWorkplace.Step;
@@ -222,4 +232,3 @@ async function combineAuditData(workplaceDataPromise, hubstaffDataPromise) {
 
   return combined;
 }
-
