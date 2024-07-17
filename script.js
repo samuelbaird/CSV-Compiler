@@ -1,18 +1,17 @@
 const uploadForm = document.getElementById("uploadForm");
 const gptFilterForm = document.getElementById("gptFilterForm");
-const auditForm = document.getElementById("auditForm");
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const workplaceFile = document.getElementById("workplaceFile").files[0];
+  const metabaseFile = document.getElementById("metabaseFile").files[0];
   const hubstaffFile = document.getElementById("hubstaffFile").files[0];
 
-  const workplaceDataPromise = parseCSV(workplaceFile);
+  const metabaseDataPromise = parseCSV(metabaseFile);
   const hubstaffDataPromise = parseCSV(hubstaffFile);
 
   const combinedData = await combineData(
-    workplaceDataPromise,
+    metabaseDataPromise,
     hubstaffDataPromise
   );
 
@@ -33,25 +32,6 @@ gptFilterForm.addEventListener("submit", async (event) => {
   const csvContent = convertToCSV(filteredUrls);
 
   downloadCSV(csvContent, "filtered_urls.csv");
-});
-
-auditForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const workplaceFile = document.getElementById("workplaceAuditFile").files[0];
-  const hubstaffFile = document.getElementById("hubstaffAuditFile").files[0];
-
-  const workplaceDataPromise = parseCSV(workplaceFile);
-  const hubstaffDataPromise = parseCSV(hubstaffFile);
-
-  const combinedData = await combineAuditData(
-    workplaceDataPromise,
-    hubstaffDataPromise
-  );
-
-  const csvContent = convertToCSV(combinedData);
-
-  downloadCSV(csvContent, "combined_data.csv");
 });
 
 function parseCSV(file) {
@@ -85,41 +65,82 @@ function parseCSV(file) {
   });
 }
 
-async function combineData(workplaceDataPromise, hubstaffDataPromise) {
-  const workplaceData = await workplaceDataPromise;
+async function combineData(metabaseDataPromise, hubstaffDataPromise) {
+  const metabaseData = await metabaseDataPromise;
   const hubstaffData = await hubstaffDataPromise;
 
   const combined = [];
-  workplaceData.forEach((workplaceRow) => {
-    const workplaceNames = workplaceRow.Agent.split(" ");
 
-    const matchingHubstaff = hubstaffData.find((hubstaffRow) => {
-      const hubstaffNames = hubstaffRow.Member.split(" ");
+  hubstaffData.forEach((hubstaffRow) => {
+    let task = null;
+    let tasksCompleted = null;
 
-      const agentRegex = new RegExp("^" + workplaceRow.Agent.slice(0, 4), "i");
+    if (
+      hubstaffRow.Project === "Google - Multi-Turn (QA)" ||
+      hubstaffRow.Project === "Google - Multi-Turn (Operating)"
+    ) {
+      const matchingMetabaseEntries = metabaseData.filter(
+        (metabaseRow) =>
+          metabaseRow.email === hubstaffRow["Work email"] &&
+          metabaseRow.day === hubstaffRow.Date
+      );
 
-      const matches = workplaceNames.filter((workplaceName) =>
-        hubstaffNames.some((hubstaffName) =>
-          hubstaffName.toLowerCase().includes(workplaceName.toLowerCase())
-        )
-      ).length;
-
-      const matchThreshold = Math.ceil(workplaceNames.length * 0.75);
-
-      const results =
-        agentRegex.test(hubstaffRow.Member) + (matches >= matchThreshold);
-
-      return results;
-    });
-
-    if (matchingHubstaff) {
+      if (matchingMetabaseEntries.length > 0) {
+        matchingMetabaseEntries.forEach((matchingMetabase) => {
+          combined.push({
+            Agent: hubstaffRow.Member,
+            Email: hubstaffRow["Work email"],
+            Timer: hubstaffRow.Project,
+            Task: matchingMetabase.step_name,
+            Date: hubstaffRow.Date,
+            Time: hubstaffRow.Time,
+            Activity: hubstaffRow.Activity,
+            "Tasks Completed": matchingMetabase.Steps,
+          });
+        });
+      } else {
+        combined.push({
+          Agent: hubstaffRow.Member,
+          Email: hubstaffRow["Work email"],
+          Timer: hubstaffRow.Project,
+          Task: null,
+          Date: hubstaffRow.Date,
+          Time: hubstaffRow.Time,
+          Activity: hubstaffRow.Activity,
+          "Tasks Completed": null,
+        });
+      }
+    } else {
       combined.push({
-        Agent: workplaceRow.Agent,
-        Timer: matchingHubstaff.Project,
-        Task: workplaceRow.Step,
-        Date: matchingHubstaff.Date,
-        Time: matchingHubstaff.Time,
-        "Tasks Completed": workplaceRow["# of Base Runs"],
+        Agent: hubstaffRow.Member,
+        Email: hubstaffRow["Work email"],
+        Timer: hubstaffRow.Project,
+        Task: null,
+        Date: hubstaffRow.Date,
+        Time: hubstaffRow.Time,
+        Activity: hubstaffRow.Activity,
+        "Tasks Completed": null,
+      });
+    }
+  });
+
+  metabaseData.forEach((metabaseRow) => {
+    const matchingHubstaff = hubstaffData.find(
+      (hubstaffRow) =>
+        metabaseRow.email === hubstaffRow["Work email"] &&
+        metabaseRow.day === hubstaffRow.Date
+    );
+
+    if (!matchingHubstaff) {
+      combined.push({
+        Agent: null,
+        Email: metabaseRow.email,
+        Timer: null,
+        Task: metabaseRow.step_name,
+        Date: metabaseRow.day,
+        Time: null,
+        Activity: null,
+        "Tasks Completed": metabaseRow.Steps,
       });
     }
   });
@@ -156,6 +177,8 @@ async function gptFilter(urlsFilePromise) {
     "perplexity.ai",
     "perplexity.chat",
     "huggingface.co",
+    "claude.ai",
+    "github.com/github-copilot",
   ];
 
   const filteredUrls = urlsData.filter((row) =>
@@ -165,70 +188,5 @@ async function gptFilter(urlsFilePromise) {
   return filteredUrls;
 }
 
-async function combineAuditData(workplaceDataPromise, hubstaffDataPromise) {
-  const workplaceData = await workplaceDataPromise;
-  const hubstaffData = await hubstaffDataPromise;
 
-  const filteredHubstaffData = hubstaffData.filter(
-    (hubstaffRow) =>
-      hubstaffRow.Project === "Google - Multi-Turn (QA)" ||
-      hubstaffRow.Project === "Google - Multi-Turn (Operating)"
-  );
 
-  const combined = [];
-
-  const normalizeName = (name) => {
-    return name
-      .toLowerCase()
-      .replace(/^(mr|mrs|ms|dr|prof)\.?\s+/i, "")
-      .replace(/\s+(jr|sr|ii|iii|iv|v|ph\.d|md)$/i, "");
-  };
-
-  const workplaceNamesList = workplaceData.map((workplaceRow) => ({
-    name: normalizeName(workplaceRow.Agent),
-    data: workplaceRow,
-  }));
-
-  const fuzzyMatch = (pattern) => {
-    const options = {
-      includeScore: true,
-      threshold: 0.5,
-      keys: ["name"],
-    };
-
-    const fuse = new Fuse(workplaceNamesList, options);
-    const result = fuse.search(pattern);
-
-    return result.length > 0 ? result[0].item.data : null;
-  };
-
-  hubstaffData.forEach((hubstaffRow) => {
-    let task = null;
-    let tasksCompleted = null;
-
-    if (
-      hubstaffRow.Project === "Google - Multi-Turn (QA)" ||
-      hubstaffRow.Project === "Google - Multi-Turn (Operating)"
-    ) {
-      const normalizedHubstaffName = normalizeName(hubstaffRow.Member);
-      const matchingWorkplace = fuzzyMatch(normalizedHubstaffName);
-
-      if (matchingWorkplace) {
-        task = matchingWorkplace.Step;
-        tasksCompleted = matchingWorkplace["# of Base Runs"];
-      }
-    }
-
-    combined.push({
-      Agent: hubstaffRow.Member,
-      Timer: hubstaffRow.Project,
-      Task: task,
-      Date: hubstaffRow.Date,
-      Time: hubstaffRow.Time,
-      Activity: hubstaffRow.Activity,
-      "Tasks Completed": tasksCompleted,
-    });
-  });
-
-  return combined;
-}
