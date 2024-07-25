@@ -166,6 +166,7 @@ function convertToCSV(data) {
   return lines.join("\n");
 }
 
+
 function downloadCSV(csvContent, filename) {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
   const url = window.URL.createObjectURL(blob);
@@ -197,23 +198,27 @@ async function gptFilter(urlsFilePromise) {
 
 async function formatData(dataPromise) {
   const data = await dataPromise;
-  const splitJson = await lineSplitter(data);
 
-  const formattedData = data.map((row, index) => {
-    const task_id = generateUUID();
-    const prompt = row.prompt.replace(/"/g, '\\"');
-    const response_a = row.response_a.replace(/"/g, '\\"');
-    const response_b = row.response_b.replace(/"/g, '\\"');
+  // Process each row individually
+  const formattedData = await Promise.all(
+    data.map(async (row, index) => {
+      const task_id = generateUUID();
+      const splitJson = await lineSplitter(row);
 
-    return {
-      batch_id: 1,
-      task_id: task_id,
-      task_json: splitJson || "",
-      prompt: prompt,
-      response_a: response_a || "",
-      response_b: response_b || "",
-    };
-  });
+      const prompt = row.prompt;
+      const response_a = row.response_a;
+      const response_b = row.response_b;
+
+      return {
+        batch_id: 1,
+        task_id: task_id,
+        task_json: splitJson,
+        prompt: prompt,
+        response_a: response_a || "",
+        response_b: response_b || "",
+      };
+    })
+  );
 
   return formattedData;
 }
@@ -234,24 +239,16 @@ function generateUUID() {
   });
 }
 
-async function lineSplitter(input) {
-  const data = input;
-  console.log(data);
+async function lineSplitter(row) {
+  const prompt = row.prompt;
+  const response_a = row.response_a.split("\n").map((line) => line.trim());
+  const response_b = row.response_b.split("\n").map((line) => line.trim());
 
-  const splitData = data.map((row) => {
-    const prompt = row.prompt;
-    const response_a = row.response_a.split("\n").map((line) => line.trim());
-    const response_b = row.response_b.split("\n").map((line) => line.trim());
+  const splitData = {
+    prompt: prompt,
+    response_a: response_a,
+    response_b: response_b,
+  };
 
-    return {
-      prompt: prompt,
-      response_a: response_a,
-      response_b: response_b,
-    };
-  });
-
-  // Convert the array of objects to a JSON string
-  const splitJson = JSON.stringify(splitData, null, 2);
-
-  return splitJson;
+  return JSON.stringify(splitData);
 }
