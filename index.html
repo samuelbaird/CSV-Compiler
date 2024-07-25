@@ -30,8 +30,17 @@
             
             <button type="submit" class="p-3 bg-primary text-white rounded hover:bg-secondary transition duration-200">Filter</button>
         </form>
-    </div>
+        <form id="formatterForm" class="flex flex-col gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-card mb-8">
+            <h2 class="text-2xl font-semibold text-primary">Step by Step CSV Formatter</h2>
+            <p class="text-gray-600">Format the data for import.</p>
+            <label for="dataFile" class="font-semibold">Data CSV:</label>
+            <input type="file" id="dataFile" name="dataFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
+            
+            <button type="submit" class="p-3 bg-primary text-white rounded hover:bg-secondary transition duration-200">Filter</button>
+        </form>
 
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script defer src="script.js"></script>
 </body>
 </html>

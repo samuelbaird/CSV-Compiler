@@ -1,5 +1,6 @@
 const uploadForm = document.getElementById("uploadForm");
 const gptFilterForm = document.getElementById("gptFilterForm");
+const formatterForm = document.getElementById("formatterForm");
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -34,34 +35,32 @@ gptFilterForm.addEventListener("submit", async (event) => {
   downloadCSV(csvContent, "filtered_urls.csv");
 });
 
+formatterForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const dataFile = document.getElementById("dataFile").files[0];
+
+  const dataPromise = await parseCSV(dataFile);
+
+  const formattedData = await formatData(dataPromise);
+
+  const csvContent = convertToCSV(formattedData);
+
+  downloadCSV(csvContent, "formatted_data.csv");
+});
+
 function parseCSV(file) {
-  const reader = new FileReader();
-  reader.readAsText(file);
   return new Promise((resolve, reject) => {
-    reader.onload = (event) => {
-      const data = event.target.result;
-      const lines = data.split(/\r?\n/);
-      const headers = lines[0]
-        .split(",")
-        .map((header) => header.trim().replace(/"/g, ""));
-
-      const rows = lines.slice(1).map((line) => {
-        const trimmedLine = line.trim().replace(/"/g, "");
-        if (!trimmedLine) return null;
-
-        const values = trimmedLine.split(",");
-        const headersWithoutEmpty = headers.filter(
-          (header, i) => values[i] !== undefined
-        );
-
-        return headersWithoutEmpty.reduce((obj, header, index) => {
-          obj[header.trim()] = values[index].trim();
-          return obj;
-        }, {});
-      });
-      resolve(rows.filter((row) => row !== null));
-    };
-    reader.onerror = (error) => reject(error);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        resolve(results.data);
+      },
+      error: function (error) {
+        reject(error);
+      },
+    });
   });
 }
 
@@ -151,10 +150,18 @@ async function combineData(metabaseDataPromise, hubstaffDataPromise) {
 function convertToCSV(data) {
   if (!data.length) return "";
 
+  const escapeAndQuote = (value) => {
+    const str = String(value);
+    if (str.includes(",") || str.includes("\n") || str.includes('"')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
   const headers = Object.keys(data[0]);
   const lines = [headers.join(",")];
   data.forEach((row) => {
-    lines.push(headers.map((header) => row[header]).join(","));
+    lines.push(headers.map((header) => escapeAndQuote(row[header])).join(","));
   });
   return lines.join("\n");
 }
@@ -188,5 +195,63 @@ async function gptFilter(urlsFilePromise) {
   return filteredUrls;
 }
 
+async function formatData(dataPromise) {
+  const data = await dataPromise;
+  const splitJson = await lineSplitter(data);
 
+  const formattedData = data.map((row, index) => {
+    const task_id = generateUUID();
+    const prompt = row.prompt.replace(/"/g, '\\"');
+    const response_a = row.response_a.replace(/"/g, '\\"');
+    const response_b = row.response_b.replace(/"/g, '\\"');
 
+    return {
+      batch_id: 1,
+      task_id: task_id,
+      task_json: splitJson || "",
+      prompt: prompt,
+      response_a: response_a || "",
+      response_b: response_b || "",
+    };
+  });
+
+  return formattedData;
+}
+
+function generateUUID() {
+  let d = new Date().getTime();
+  let d2 = (performance && performance.now && performance.now() * 1000) || 0;
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    let r = Math.random() * 16;
+    if (d > 0) {
+      r = (d + r) % 16 | 0;
+      d = Math.floor(d / 16);
+    } else {
+      r = (d2 + r) % 16 | 0;
+      d2 = Math.floor(d2 / 16);
+    }
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
+async function lineSplitter(input) {
+  const data = input;
+  console.log(data);
+
+  const splitData = data.map((row) => {
+    const prompt = row.prompt;
+    const response_a = row.response_a.split("\n").map((line) => line.trim());
+    const response_b = row.response_b.split("\n").map((line) => line.trim());
+
+    return {
+      prompt: prompt,
+      response_a: response_a,
+      response_b: response_b,
+    };
+  });
+
+  // Convert the array of objects to a JSON string
+  const splitJson = JSON.stringify(splitData, null, 2);
+
+  return splitJson;
+}
