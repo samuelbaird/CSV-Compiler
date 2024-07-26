@@ -1,7 +1,6 @@
 const uploadForm = document.getElementById("uploadForm");
 const gptFilterForm = document.getElementById("gptFilterForm");
 const formatterForm = document.getElementById("formatterForm");
-const crypto = require("crypto");
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -224,7 +223,12 @@ async function formatData(dataPromise) {
 }
 
 function generateUUID() {
-  return crypto.randomUUID();
+  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
+    (
+      c ^
+      (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
+    ).toString(16)
+  );
 }
 
 async function lineSplitter(row) {
