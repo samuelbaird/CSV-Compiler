@@ -1,6 +1,7 @@
 const uploadForm = document.getElementById("uploadForm");
 const gptFilterForm = document.getElementById("gptFilterForm");
 const formatterForm = document.getElementById("formatterForm");
+const crypto = require("crypto");
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -166,7 +167,6 @@ function convertToCSV(data) {
   return lines.join("\n");
 }
 
-
 function downloadCSV(csvContent, filename) {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
   const url = window.URL.createObjectURL(blob);
@@ -224,25 +224,13 @@ async function formatData(dataPromise) {
 }
 
 function generateUUID() {
-  let d = new Date().getTime();
-  let d2 = (performance && performance.now && performance.now() * 1000) || 0;
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    let r = Math.random() * 16;
-    if (d > 0) {
-      r = (d + r) % 16 | 0;
-      d = Math.floor(d / 16);
-    } else {
-      r = (d2 + r) % 16 | 0;
-      d2 = Math.floor(d2 / 16);
-    }
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
+  return crypto.randomUUID();
 }
 
 async function lineSplitter(row) {
   const prompt = row.prompt;
-  const response_a = row.response_a.split("\n").map((line) => line.trim());
-  const response_b = row.response_b.split("\n").map((line) => line.trim());
+  const response_a = row.response_a.split("\n");
+  const response_b = row.response_b.split("\n");
 
   const splitData = {
     prompt: prompt,
