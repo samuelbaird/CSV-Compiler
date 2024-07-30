@@ -39,10 +39,11 @@ formatterForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const dataFile = document.getElementById("dataFile").files[0];
+  const batchId = document.getElementById("batchId").value;
 
   const dataPromise = await parseCSV(dataFile);
 
-  const formattedData = await formatData(dataPromise);
+  const formattedData = await formatData(dataPromise, batchId);
 
   const csvContent = convertToCSV(formattedData);
 
@@ -195,10 +196,9 @@ async function gptFilter(urlsFilePromise) {
   return filteredUrls;
 }
 
-async function formatData(dataPromise) {
+async function formatData(dataPromise, batchId) {
   const data = await dataPromise;
 
-  // Process each row individually
   const formattedData = await Promise.all(
     data.map(async (row, index) => {
       const task_id = generateUUID();
@@ -209,7 +209,7 @@ async function formatData(dataPromise) {
       const response_b = row.response_b;
 
       return {
-        batch_id: 1,
+        batch_id: batchId,
         task_id: task_id,
         task_json: splitJson,
         prompt: prompt,
