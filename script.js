@@ -204,9 +204,9 @@ async function formatData(dataPromise, batchId) {
       const task_id = generateUUID();
       const splitJson = await lineSplitter(row);
 
-      const prompt = row.prompt;
-      const response_a = row.response_a;
-      const response_b = row.response_b;
+      const prompt = row.prompt_turn_1;
+      const response_a = row.response_a_turn_1;
+      const response_b = row.response_b_turn_1;
 
       return {
         batch_id: batchId,
@@ -232,9 +232,9 @@ function generateUUID() {
 }
 
 async function lineSplitter(row) {
-  const prompt = row.prompt;
-  const response_a = row.response_a.split("\n");
-  const response_b = row.response_b.split("\n");
+  const prompt = row.prompt_turn_1;
+  const response_a = row.response_a_turn_1.split("\n");
+  const response_b = row.response_b_turn_1.split("\n");
 
   const splitData = {
     prompt: prompt,
