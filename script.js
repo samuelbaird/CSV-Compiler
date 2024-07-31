@@ -308,6 +308,8 @@ async function formatExport(taskPromise, operatePromise) {
           annotation[0] !== undefined
             ? annotation[0] === 1
               ? "+1"
+              : annotation[0] === -1
+              ? "-1"
               : "0"
             : "0";
         const explanation = annotation[1] || "";
