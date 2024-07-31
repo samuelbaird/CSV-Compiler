@@ -1,6 +1,7 @@
 const uploadForm = document.getElementById("uploadForm");
 const gptFilterForm = document.getElementById("gptFilterForm");
 const formatterForm = document.getElementById("formatterForm");
+const exportForm = document.getElementById("exportForm");
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -48,6 +49,22 @@ formatterForm.addEventListener("submit", async (event) => {
   const csvContent = convertToCSV(formattedData);
 
   downloadCSV(csvContent, "formatted_data.csv");
+});
+
+exportForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const taskFile = document.getElementById("taskFile").files[0];
+  const operateFile = document.getElementById("operateFile").files[0];
+
+  const taskPromise = await parseCSV(taskFile);
+  const operatePromise = await parseCSV(operateFile);
+
+  const exportData = await formatExport(taskPromise, operatePromise);
+
+  const jsonlContent = convertToJSONL(exportData);
+
+  downloadCSV(jsonlContent, "export_data.jsonl");
 });
 
 function parseCSV(file) {
@@ -243,4 +260,112 @@ async function lineSplitter(row) {
   };
 
   return JSON.stringify(splitData);
+}
+
+async function formatExport(taskPromise, operatePromise) {
+  const taskData = await taskPromise;
+  const operateData = await operatePromise;
+
+  const combinedData = [];
+
+  taskData.forEach((taskRow) => {
+    const task_id = taskRow["task_id (uuid)"];
+    const operateRow = operateData.find(
+      (operateRow) => operateRow.task_id === task_id
+    );
+
+    if (operateRow) {
+      const taskJson = JSON.parse(taskRow.task_json);
+
+      const operateJson = JSON.parse(operateRow.operate_data);
+
+      if (operateJson.promptCheck === "Fail") {
+        return;
+      }
+
+      const annotatorId = getUUIDForEmail(operateRow.email);
+
+      const conversation = {
+        prompt: taskJson.prompt || "",
+        response_a: taskRow.response_a || "",
+        response_a_meta: [],
+        response_b: taskRow.response_b || "",
+        response_b_meta: [],
+      };
+
+      const response_a_lines = taskJson.response_a || [];
+      const response_a_annotations =
+        operateJson.responseA?.lineAnnotations || [];
+
+      const response_b_lines = taskJson.response_b || [];
+      const response_b_annotations =
+        operateJson.responseB?.lineAnnotations || [];
+
+      response_a_annotations.forEach((annotation, index) => {
+        const lineIndex = index;
+        const line = response_a_lines[lineIndex] || "";
+        const rating =
+          annotation[0] !== undefined
+            ? annotation[0] === 1
+              ? "+1"
+              : "0"
+            : "0";
+        const explanation = annotation[1] || "";
+
+        conversation.response_a_meta.push({
+          response_a_index: lineIndex,
+          response_a_line: line,
+          response_a_rating: rating,
+          response_a_explanation: explanation,
+        });
+      });
+
+      response_b_annotations.forEach((annotation, index) => {
+        const lineIndex = index;
+        const line = response_b_lines[lineIndex] || "";
+        const rating =
+          annotation[0] !== undefined
+            ? annotation[0] === 1
+              ? "+1"
+              : "0"
+            : "0";
+        const explanation = annotation[1] || "";
+
+        conversation.response_b_meta.push({
+          response_b_index: lineIndex,
+          response_b_line: line,
+          response_b_rating: rating,
+          response_b_explanation: explanation,
+        });
+      });
+
+      combinedData.push({
+        metadata: {
+          id: task_id,
+          annotator_id: annotatorId || "",
+        },
+        conversation: conversation,
+      });
+    }
+  });
+
+  return combinedData;
+}
+
+function convertToJSONL(combinedData) {
+  const jsonLines = combinedData.map((entry) => JSON.stringify(entry));
+
+  const jsonlContent = jsonLines.join("\n");
+
+  return jsonlContent;
+}
+
+const emailToUUIDMap = new Map();
+
+function getUUIDForEmail(email) {
+  if (!emailToUUIDMap.has(email)) {
+    const uuid = generateUUID();
+    emailToUUIDMap.set(email, uuid);
+  }
+  return emailToUUIDMap.get(email);
 }
