@@ -48,9 +48,17 @@
             <input type="file" id="operateFile" name="operateFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
             <button type="submit" class="p-3 bg-primary text-white rounded hover:bg-secondary transition duration-200">Format</button>
         </form>
-
+        <form id="reportForm" class="flex flex-col gap-4 p-6 bg-white border border-gray-200 rounded-lg shadow-card mb-8">
+            <h2 class="text-2xl font-semibold text-primary">Step by Step Hourly Production Reports</h2>
+            <p class="text-gray-600">Extract data from Hub Sheet</p>
+            <label for="hourlyFile" class="font-semibold">Hub CSV:</label>
+            <input type="file" id="hourlyFile" name="hourlyFile" accept=".csv" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
+            <input type="number" id="hourlyId" name="hourlyId" placeholder="Enter Batch ID" required />
+            
+            <button type="submit" class="p-3 bg-primary text-white rounded hover:bg-secondary transition duration-200">Format</button>
+        </form>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script defer src="script.js"></script>
+    <script type="module" defer src="script.js"></script>
 </body>
 </html>
