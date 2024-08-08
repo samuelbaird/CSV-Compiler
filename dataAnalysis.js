@@ -60,10 +60,35 @@ export async function analyzeCSV(metricsPromise, annotationsPromise) {
     // Filter metricsData to include only rows where batch_id === 2
     const filteredData = data.filter((row) => row["batch_id"] === "2");
 
-    // Filter annotationsData to exclude those with promptCheck === "Fail"
-    const filteredAnnotationsData = annotationsData.filter(
-      (annotation) => JSON.parse(annotation.operate_data).promptCheck === "Pass"
-    );
+const filteredAnnotationsData = Object.values(
+  annotationsData.reduce((acc, annotation) => {
+    const taskId = annotation.task_id;
+    const timestamp = annotation["timestamp (PST)"]
+      ? annotation["timestamp (PST)"].trim()
+      : null;
+
+    // Parse the timestamp using moment.js
+    const currentTimestamp = timestamp
+      ? moment(timestamp, "YYYY-MM-DD HH:mm:ss").valueOf()
+      : NaN;
+
+    // Check if the timestamp is valid
+    if (isNaN(currentTimestamp)) {
+      console.warn(`Invalid timestamp for task_id ${taskId}:`, timestamp);
+      return acc;
+    }
+
+    // If this task_id is not in the accumulator, or if the current timestamp is later than the one stored
+    if (!acc[taskId] || currentTimestamp > acc[taskId].currentTimestamp) {
+      console.log(`Updating ${taskId} to new timestamp: ${timestamp}`);
+      // Save the annotation and timestamp in the accumulator
+      acc[taskId] = { ...annotation, currentTimestamp };
+    }
+
+    return acc;
+  }, {})
+);
+
 
     function getResponseRating(annotations) {
       const lineAnnotations = annotations?.lineAnnotations;
