@@ -8,12 +8,14 @@ import {
   hourlyReport,
 } from "./dataManipulation.js";
 import { convertToCSV, convertToJSONL } from "./conversion.js";
+import { analyzeCSV } from "./dataAnalysis.js";
 
 const uploadForm = document.getElementById("uploadForm");
 const gptFilterForm = document.getElementById("gptFilterForm");
 const formatterForm = document.getElementById("formatterForm");
 const exportForm = document.getElementById("exportForm");
 const reportForm = document.getElementById("reportForm");
+const metricsForm = document.getElementById("metricsForm");
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -92,4 +94,20 @@ reportForm.addEventListener("submit", async (event) => {
   const csvContent = convertToCSV(hourlyData);
 
   downloadCSV(csvContent, "hourly_report.csv");
+});
+
+metricsForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const metricsFile = document.getElementById("metricsFile").files[0];
+  const annotationsFile = document.getElementById("annotationsFile").files[0];
+
+  const metricsPromise = await parseCSV(metricsFile);
+  const annotationsPromise = await parseCSV(annotationsFile);
+
+  const results = await analyzeCSV(metricsPromise, annotationsPromise);
+
+  const csvContent = convertToCSV(results);
+
+  downloadCSV(csvContent, "metrics_results.csv");
 });
